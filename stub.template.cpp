@@ -39,7 +39,10 @@
 // TO THE FUNCTIONS WE'RE IMPLEMENTING. THIS MAKES SURE THE
 // CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
 
-#include "simplefunction.idl"
+// #include "simplefunction.idl"
+#include "$idlname"
+
+
 
 #include "rpcstubhelper.h"
 
@@ -66,64 +69,7 @@ void getFunctionNamefromStream();
 // ======================================================================
   
 
-
-void __func1() {
-  char doneBuffer[5] = "DONE";  // to write magic value DONE + null
-
-  //
-  // Time to actually call the function 
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: invoking func1()");
-  func1();
-
-  //
-  // Send the response to the client
-  //
-  // If func1 returned something other than void, this is
-  // where we'd send the return value back.
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: returned from  func1() -- responding to client");
-  RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);
-}
-
-void __func2() {
-  char doneBuffer[5] = "DONE";  // to write magic value DONE + null
-
-  //
-  // Time to actually call the function 
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: invoking func2()");
-  func2();
-
-  //
-  // Send the response to the client
-  //
-  // If func2 returned something other than void, this is
-  // where we'd send the return value back.
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: returned from  func2() -- responding to client");
-  RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);
-}
-
-void __func3() {
-  char doneBuffer[5] = "DONE";  // to write magic value DONE + null
-
-  //
-  // Time to actually call the function 
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: invoking func3()");
-  func3();
-
-  //
-  // Send the response to the client
-  //
-  // If func3 returned something other than void, this is
-  // where we'd send the return value back.
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: returned from  func3() -- responding to client");
-  RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);
-}
-
+$stubs
 
 //
 //     __badFunction
@@ -139,7 +85,7 @@ void __badFunction(char *functionName) {
   // Send the response to the client indicating bad function
   //
 
-  c150debug->printf(C150RPCDEBUG,"simplefunction.stub.cpp: received call for nonexistent function %s()",functionName);
+  c150debug->printf(C150RPCDEBUG,"stub: received call for nonexistent function %s()",functionName);
   RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);
 }
 
@@ -180,13 +126,7 @@ void dispatchFunction() {
   //
 
   if (!RPCSTUBSOCKET-> eof()) {
-    if (strcmp(functionNameBuffer,"func1") == 0)
-      __func1();
-    else   if (strcmp(functionNameBuffer,"func2") == 0)
-      __func2();
-    else   if (strcmp(functionNameBuffer,"func3") == 0)
-      __func3();
-    else
+    $conditionals    else
       __badFunction(functionNameBuffer);
   }
 }

@@ -9,6 +9,8 @@ import sys
 import os
 
 
+print sys.argv
+
 try:
     #
     #     Make sure invoked properly
@@ -30,7 +32,7 @@ try:
     #
     #     Parse declarations into a Python dictionary
     #
-    decls = json.loads(subprocess.check_output(["idl_to_json", filename]))
+    decls = json.loads(subprocess.check_output(["./idl_to_json", filename]))
 
     #
     # Loop printing each function signature
