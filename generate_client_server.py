@@ -56,14 +56,23 @@ def proxyString(name, sig):
     lines.append('  string outgoing = "%s" + " " + base64_encode(args.str());' % name)
     lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
-    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
-    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
-    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
-    lines.append('  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer));')
-    lines.append('  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {')
-    lines.append('    throw C150Exception("proxy: %s() received invalid response from the server");' % name)
+    lines.append('  ostringstream ret;')
+    lines.append('  string raw = readFromStream();')
+    lines.append('  ret.str(raw);')
+    lines.append('  string name;')
+    lines.append('  ret >> name;')
+    lines.append('  if (name != "%s") {' %name)
+    lines.append('    //panic!')
     lines.append('  }')
-    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s() successful return from remote call");' % name)
+    if sig["return_type"] != "void":
+        lines.append('  string msg;')
+        lines.append('  ret >> msg;')
+        lines.append('  %s retval;' % normalizeType(sig["return_type"]))
+        lines.append('  %s(&retval, base64_decode(msg));' % getParseFunc(sig["return_type"]))
+        lines.append('  return retval;')
+
+    else:
+        lines.append('  return;')
     lines.append('}')
 
     return "\n".join(lines);
