@@ -27,5 +27,11 @@
 *.exe
 *.out
 *.app
+idl_to_json
+idldeclarationtst
+pingstreamclient
+pingstreamserver
+simplefunctionclient
+simplefunctionserver
 
 .nfs*
