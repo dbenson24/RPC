@@ -54,6 +54,10 @@ using namespace C150NETWORK;  // for all the comp150 utilities
 
 void getFunctionNamefromStream();
 
+$utildecls
+
+$utilfuncs
+
 // ======================================================================
 //                             STUBS
 //
@@ -67,7 +71,6 @@ void getFunctionNamefromStream();
 //    code above).
 //
 // ======================================================================
-  
 
 $stubs
 

@@ -37,4 +37,7 @@
 
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
+$utildecls
+$utilfuncs
+
 $functions
