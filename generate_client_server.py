@@ -50,6 +50,14 @@ def proxyString(name, sig):
     argstring = ', '.join([normalizeType(a["type"]) + ' ' + a["name"] for a in args])
 
     lines = ["%s %s(%s) {" % (sig["return_type"], name, argstring)]
+    lines.append('  istringstream args;')
+    for arg in args:
+        lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
+    lines.append('  string outgoing = "%s" + " " + base64_encode(args.str());' % name)
+    lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
+    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
+    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
+    lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
     lines.append('  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer));')
     lines.append('  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {')
@@ -85,16 +93,8 @@ def stubString(name, sig):
         lines.append('  %s(%s);' % (name, ", ".join(names)))
     else:
         lines.append('  %s retval = %s(%s);' % (sig["return_type"], name, ", ".join(names)))
-        lines.append('  response = response + " " + %s(retval);' % getEncodeFunc(sig["return_type"]))
+        lines.append('  response = response + " " + %s(&retval);' % getEncodeFunc(sig["return_type"]))
 
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
-    lines.append('  //char doneBuffer[5] = "DONE";')
     lines.append('  c150debug->printf(C150RPCDEBUG,"stub: %s() has returned");' % name)
     lines.append('  RPCPROXYSOCKET->write(response.c_str(), strlen(response.c_str()) + 1);')
     lines.append('}')
@@ -139,18 +139,74 @@ try:
     stubfuncs = []
     stubconditionals = []
     utildecls = [];
+    utildecls.append("""
+///////////////Built in///////////////////////////
+string to_string64_string(string *val);
+void parse_string(string *value, string arg);
+string to_string64_int(int *val);
+void parse_int(int *value, string arg);
+string to_string64_float(float *val);
+void parse_float(float *value, string arg);
+//////////////////////////////////////////////////""")
     utilfuncs = [];
+    utilfuncs.append("""
+///////////////Built in///////////////////////////
+string to_string64_string(string *val) {
+    return base64_encode(*val);
+}
+void parse_string(string *value, string arg) {
+    *value = args;
+}
+string to_string64_int(int *val) {
+    return base64_encode(to_string(*val));
+}
+void parse_int(int *value, string arg) {
+    *value = stoi(arg);
+}
+string to_string64_float(float *val) {
+    return base64_encode(to_string(*val));
+}
 
+void parse_float(float *value, string arg) {
+    *value = stof(arg);
+}
+//////////////////////////////////////////////////""")
+
+
+    # loop generates all of encode and parse functions needed for each type
     for type, info in decls["types"].iteritems():
-         parseDecl = "void %s(*%s, string argstr)" % (getParseFunc(type), type)
-         encodeDecl = "string %s(%s x)" % (getEncodeFunc(type), type);
-         utildecls.append(parseDecl + ";");
-         utildecls.append(encodeDecl + ";");
+        if info["type_of_type"] == "builtin":
+            continue
+        parseDecl = "void %s(%s *val, string argstr)" % (getParseFunc(type), type)
+        encodeDecl = "string %s(%s *val)" % (getEncodeFunc(type), type);
+        utildecls.append(parseDecl + ";");
+        utildecls.append(encodeDecl + ";");
+        if info["type_of_type"] == "struct":
+            parseLines = [parseDecl + " {"]
+            parseLines.append("  istringstream args;")
+            parseLines.append("  string arg64;")
+            parseLines.append("  args.str(argstr);")
+            for member in info["members"]:
+                parseLines.append("  args >> arg64;")
+                parseLines.append("  %s(&((*val).%s), base64_decode(arg64));" % (getParseFunc(member["type"]), member["name"]))
+            parseLines.append("}")
+            utilfuncs.append("\n".join(parseLines))
+
+            encodeLines = [encodeDecl + " {"]
+            encodeLines.append("  ostringstream s;")
+            encodeLines.append("  string arg64;")
+            encodeLines.append("  args.str(argstr);")
+            for member in info["members"]:
+                encodeLines.append("  s << %s(&((*val).%s)) << ' '" % (getEncodeFunc(member["type"]), member["name"]))
+            encodeLines.append("}")
+            utilfuncs.append("\n".join(encodeLines))
+        else:
+            continue
 
     for  name, sig in decls["functions"].iteritems():
-         proxyfuncs.append(proxyString(name, sig))
-         stubconditionals.append("if (strcmp(functionNameBuffer, '%s'))\n      __%s();\n" % (name, name))
-         stubfuncs.append(stubString(name, sig))
+        proxyfuncs.append(proxyString(name, sig))
+        stubconditionals.append("if (strcmp(functionNameBuffer, '%s'))\n      __%s();\n" % (name, name))
+        stubfuncs.append(stubString(name, sig))
 
 
 
