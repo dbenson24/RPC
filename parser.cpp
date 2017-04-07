@@ -56,8 +56,8 @@ string readFromStream() {
 
 //////////////////////////////////////////////////
 
-string to_string64_string(string val) {
-    return base64_encode(val);
+string to_string64_string(string *val) {
+    return base64_encode(*val);
 }
 
 void parse_string(string *value, string arg) {
@@ -66,8 +66,8 @@ void parse_string(string *value, string arg) {
 
 //////////////////////////////////////////////////
 
-string to_string64_int(int val) {
-    return base64_encode(to_string(val));
+string to_string64_int(int *val) {
+    return base64_encode(to_string(*val));
 }
 
 void parse_int(int *value, string arg) {
@@ -76,8 +76,8 @@ void parse_int(int *value, string arg) {
 
 
 
-string to_string64_float(float val) {
-    return base64_encode(to_string(val));
+string to_string64_float(float *val) {
+    return base64_encode(to_string(*val));
 }
 
 void parse_float(float *value, string arg) {
@@ -86,50 +86,83 @@ void parse_float(float *value, string arg) {
 
 //////////////////////////////////////////////////
 
-string to_string64_strings_4(string *val) {
+string to_string64_$TYPE_$LEN(string **val) {
     ostringstream s;
 
-    for (int i = 0; i < 4; i++) {
-        s << to_string64(val[i]) << " ";
+    for (int i = 0; i < $LEN; i++) {
+        s << to_string64(*val[i]) << " ";
     }
 
     return base64_encode(s.str());
 }
 
-void parse_strings_4(string *value, string argstr) {
+void parse_strings_$LEN(string *val, string argstr) {
     istringstream args;
-    string arg;
+    string arg64;
     args.str(argstr);
 
-    for (int i = 0; i < 4; i++) {
-        args >> arg;
-        parse_string(*value[i], base64_decode(arg));
+    for (int i = 0; i < $LEN; i++) {
+        args >> arg64;
+        parse_string(*val[i], base64_decode(arg64));
     }
 }
 
 //////////////////////////////////////////////////
 
-void parse_person(person *value, string argstr) {
+void parse_$TYPE($TYPE *val, string argstr) {
     istringstream args;
-    string arg;
+    string arg64;
     args.str(argstr);
 
-    args >> arg;
-    parse_string(*value.name, base64_decode(arg));
-
-    args >> arg;
-    parse_int(*value.age, base64_decode(arg));
-
-    args >> arg;
-    parse_int(*value.height, base64_decode(arg));
+    args >> arg64;
+    parse_string(&((*val).$MEMBER), base64_decode(arg64));
 }
 
-string to_string64_person(person *val) {
+string to_string64_$TYPE($TYPE *val) {
     ostringstream s;
 
-    s << *val.name << " ";
-    s << *val.age << " ";
-    s << *val.height << " ";
+    s << $TO_STRING64_TYPE(&((*val).$MEMBER)) << " ";
 
     return base64_encode(s.str());
 }
+
+
+
+proxy() {
+    // Make the call
+    istringstream args;
+    args << $TO_STRING_TYPE(&arg) << " ";
+    rpcCall("$NAME " + base64_encode(args.str()));
+
+    // Get the response
+    ostringstream ret;
+    string msg = readFromStream();
+    ret.str(msg);
+    ret >> msg;
+    if (msg != "$NAME") {
+        // PANIC
+    }
+    // if (!FUNCTION_IS_VOID):
+    //    ret >> msg;
+    //    $RETURN_TYPE retval;
+    //    parse_$TYPE(&retval, base64_decode(msg));
+    //    return retval;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
