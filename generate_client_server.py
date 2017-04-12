@@ -14,16 +14,19 @@ from string import Template
 
 print sys.argv
 
+# Takes a type and removes underscores at the front (dealing with arrays)
 def normalizeType(type):
     if type[0] == '_' and type[1] == '_':
         return type[2:]
     return type
 
+# Returns true if the type represents an array
 def isArray(type):
     if type[0] == '_' and type[1] == '_':
         return True
     return False
 
+# returns a string that declares a named variable of a specific type
 def declareVar(name, type):
     if (isArray(type)):
         index = type.find('[')
@@ -32,16 +35,22 @@ def declareVar(name, type):
         return "%s %s%s" % (normalizeType(typeName), name, brackets)
     return "%s %s" % (type, name)
 
+# returns the name of the function that should be called to parse a string
+# and return that type
 def getParseFunc(type):
     if (isArray(type)):
         return 'parse_' + re.sub('[\[\]]+','_',normalizeType(type))
     return 'parse_' + type;
 
+# returns the name of a function that should be called to get a base64 encoding
+# of the given type
 def getEncodeFunc(type):
     if (isArray(type)):
         return 'to_string64_' + re.sub('[\[\]]+','_',normalizeType(type))
     return 'to_string64_' + type;
 
+# generates the string needed in the proxy template for the given function and
+# signature
 def proxyString(name, sig):
     # Python Array of all args (each is a hash with keys "name" and "type")
     args = sig["arguments"]
@@ -77,6 +86,8 @@ def proxyString(name, sig):
 
     return "\n".join(lines);
 
+# generates the string needed in the stub template for the given function and
+# signature
 def stubString(name, sig):
     # Python Array of all args (each is a hash with keys "name" and "type")
     args = sig["arguments"]
@@ -148,6 +159,8 @@ try:
     stubfuncs = []
     stubconditionals = []
     utildecls = [];
+
+    # Adds the built in function declarations
     utildecls.append("""
 ///////////////Built in///////////////////////////
 string to_string64_string(string *val);
@@ -158,13 +171,14 @@ string to_string64_float(float *val);
 void parse_float(float *value, string arg);
 //////////////////////////////////////////////////""")
     utilfuncs = [];
+    # Adds the built in function implementations
     utilfuncs.append("""
 ///////////////Built in///////////////////////////
 string to_string64_string(string *val) {
     return base64_encode(*val);
 }
 void parse_string(string *value, string arg) {
-    *value = args;
+    *value = arg;
 }
 string to_string64_int(int *val) {
     return base64_encode(to_string(*val));
