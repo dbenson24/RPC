@@ -233,12 +233,20 @@ void parse_float(float *value, string arg) {
 
 
 
+    proxyFileName = filename.split(".")[0] + ".proxy.cpp.gen"
+
     proxysub = dict()
     proxysub["functions"] = "\n".join(proxyfuncs)
     proxysub["idlname"] = filename
     proxysub["utildecls"] = "\n".join(utildecls);
     proxysub["utilfuncs"] = "\n".join(utilfuncs);
-    print proxytemplate.safe_substitute(proxysub)
+
+    with open(proxyFileName, 'w') as f:
+        f.write(proxytemplate.safe_substitute(proxysub))
+        f.close()
+
+
+    stubFileName = filename.split(".")[0] + ".stub.cpp.gen"
 
     stubsub = dict()
     stubsub["stubs"] = "\n".join(stubfuncs)
@@ -246,7 +254,13 @@ void parse_float(float *value, string arg) {
     stubsub["conditionals"] = "    else ".join(stubconditionals)
     stubsub["utildecls"] = "\n".join(utildecls);
     stubsub["utilfuncs"] = "\n".join(utilfuncs);
-    print stubtemplate.safe_substitute(stubsub)
+    with open(stubFileName, 'w') as f:
+        f.write(stubtemplate.safe_substitute(stubsub))
+        f.close()
+
+
+
+
 
 except Exception as e:
     traceback.print_exc()
