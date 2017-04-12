@@ -62,7 +62,7 @@ def proxyString(name, sig):
     lines.append('  istringstream args;')
     for arg in args:
         lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
-    lines.append('  string outgoing = "%s" + " " + base64_encode(args.str());' % name)
+    lines.append('  string outgoing = "%s " + base64_encode(args.str());' % name)
     lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
     lines.append('  ostringstream ret;')
@@ -116,7 +116,7 @@ def stubString(name, sig):
         lines.append('  response = response + " " + %s(&retval);' % getEncodeFunc(sig["return_type"]))
 
     lines.append('  c150debug->printf(C150RPCDEBUG,"stub: %s() has returned");' % name)
-    lines.append('  RPCPROXYSOCKET->write(response.c_str(), strlen(response.c_str()) + 1);')
+    lines.append('  RPCSTUBSOCKET->write(response.c_str(), strlen(response.c_str()) + 1);')
     lines.append('}')
 
     return "\n".join(lines);
