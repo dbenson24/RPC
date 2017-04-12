@@ -27,7 +27,6 @@
 
 
 
-#include "$idlname"
 
 #include "rpcproxyhelper.h"
 
@@ -38,6 +37,8 @@
 
 using namespace std;
 using namespace C150NETWORK;  // for all the comp150 utilities 
+
+#include "$idlname"
 
 string readFromStream();
 $utildecls

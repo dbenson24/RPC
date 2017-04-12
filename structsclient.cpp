@@ -45,7 +45,6 @@
 // AND STUBS, AND ALSO USED AS INPUT TO AUTOMATIC PROXY/STUB
 // GENERATOR PROGRAM
 
-#include "arithmetic.idl"
 
 #include "rpcproxyhelper.h"
 
@@ -55,6 +54,8 @@
 
 using namespace std;          // for C++ std library
 using namespace C150NETWORK;  // for all the comp150 utilities 
+
+#include "structs.idl"
 
 // forward declarations
 void setUpDebugLogging(const char *logname, int argc, char *argv[]);
@@ -114,19 +115,34 @@ main(int argc, char *argv[]) {
        // 
        // Call (possibly remote) func1
        //
-       printf("Calling add(2, 2)\n");
-       int x = add(2, 2);                          // remote call (we hope!)
-       printf("Got %d\n", x);
-       printf("Calling subtract(10, 2)\n");
-       x = subtract(10, 100);                          // remote call (we hope!)
-       printf("Got %d\n", x);
-       printf("Calling multiply(5, 2)\n");
-       x = multiply(5, 2);                          // remote call (we hope!)
-       printf("Got %d\n", x);
-       printf("Calling divide(50, 2)\n");
-       x = divide(50, 2);                          // remote call (we hope!)
-       printf("Got %d\n", x); 
-     
+       Person one = {
+            "Derek",
+            "Benson",
+            20
+       };
+
+       Person two = {
+            "Stephen",
+            "Michel",
+            20
+       };
+
+       Person three = {
+            "Noah",
+            "Mendelson",
+            60
+       };
+
+       ThreePeople tp = {
+            one, two, three
+       };
+       cout << "Calling findPerson with Derek, Stephen, and Noah" << endl;
+       Person x = findPerson(tp);
+       cout << "Got " << x.firstname << endl;
+       rectangle r = {12, 5};
+       cout << "finding the area of a 12x5 rectangle" << endl;
+       int a = area(r);
+       cout << "Got " << a;
      }
 
      //
@@ -135,7 +151,7 @@ main(int argc, char *argv[]) {
      catch (C150Exception e) {
        // Write to debug log
        c150debug->printf(C150ALWAYSLOG,"Caught C150Exception: %s\n",
-			 e.formattedExplanation().c_str());
+             e.formattedExplanation().c_str());
        // In case we're logging to a file, write to the console too
        cerr << argv[0] << ": caught C150NetworkException: " << e.formattedExplanation() << endl;
      }
@@ -220,5 +236,5 @@ void setUpDebugLogging(const char *logname, int argc, char *argv[]) {
      // for the system to run quietly without producing debug output.
      //
      c150debug->enableLogging(C150ALLDEBUG | C150RPCDEBUG | C150APPLICATION | C150NETWORKTRAFFIC | 
-			      C150NETWORKDELIVERY); 
+                  C150NETWORKDELIVERY); 
 }

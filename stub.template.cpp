@@ -9,10 +9,6 @@
 //
 // --------------------------------------------------------------
 
-// Include the idl file
-#include "$idlname"
-
-
 
 #include "rpcstubhelper.h"
 
@@ -23,6 +19,9 @@
 
 using namespace std;
 using namespace C150NETWORK;  // for all the comp150 utilities 
+
+// Include the idl file
+#include "$idlname"
 
 void getFunctionNamefromStream();
 

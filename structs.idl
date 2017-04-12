@@ -8,11 +8,6 @@ struct ThreePeople {
 
 Person findPerson(ThreePeople tp);
 
-struct StructWithArrays {
-  int aNumber;
-  Person people[10];
-};
-
 struct rectangle {int x; int y;};
 
 int area(rectangle r);

@@ -35,3 +35,8 @@ simplefunctionclient
 simplefunctionserver
 
 .nfs*
+
+*debug.txt
+
+*.proxy.cpp
+*.stub.cpp

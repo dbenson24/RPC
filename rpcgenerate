@@ -97,6 +97,7 @@ def stubString(name, sig):
     argstring = ', '.join([normalizeType(a["type"]) + ' ' + a["name"] for a in args])
 
     lines = ['void __%s(string args64) {' % name]
+    lines.append('  c150debug->printf(C150RPCDEBUG, "called %s with \'%%s\'", args64.c_str());' % name)
     lines.append('  istringstream args;')
     lines.append('  string arg64;')
     lines.append('  args.str(base64_decode(args64));')
@@ -218,10 +219,9 @@ void parse_float(float *value, string arg) {
 
             encodeLines = [encodeDecl + " {"]
             encodeLines.append("  ostringstream s;")
-            encodeLines.append("  string arg64;")
-            encodeLines.append("  args.str(argstr);")
             for member in info["members"]:
-                encodeLines.append("  s << %s(&((*val).%s)) << ' '" % (getEncodeFunc(member["type"]), member["name"]))
+                encodeLines.append("  s << %s(&((*val).%s)) << ' ';" % (getEncodeFunc(member["type"]), member["name"]))
+            encodeLines.append("  return base64_encode(s.str());")
             encodeLines.append("}")
             utilfuncs.append("\n".join(encodeLines))
         else:
@@ -229,7 +229,7 @@ void parse_float(float *value, string arg) {
 
     for  name, sig in decls["functions"].iteritems():
         proxyfuncs.append(proxyString(name, sig))
-        stubconditionals.append("if (strcmp(functionNameBuffer, \"%s\"))\n __%s(args);\n" % (name, name))
+        stubconditionals.append("if (!strcmp(functionNameBuffer, \"%s\"))\n __%s(args);\n" % (name, name))
         stubfuncs.append(stubString(name, sig))
 
 

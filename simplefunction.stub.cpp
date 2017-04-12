@@ -149,11 +149,11 @@ void dispatchFunction() {
   const char *functionNameBuffer = name.c_str();
 
   if (!RPCSTUBSOCKET-> eof()) {
-    if (strcmp(functionNameBuffer, "func3"))
+    if (!strcmp(functionNameBuffer, "func3"))
  __func3(args);
-    else if (strcmp(functionNameBuffer, "func2"))
+    else if (!strcmp(functionNameBuffer, "func2"))
  __func2(args);
-    else if (strcmp(functionNameBuffer, "func1"))
+    else if (!strcmp(functionNameBuffer, "func1"))
  __func1(args);
     else
       __badFunction(functionNameBuffer);
