@@ -25,6 +25,8 @@
 // TO THE FUNCTIONS WE'RE IMPLEMENTING. THIS MAKES SURE THE
 // CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
 
+
+
 #include "simplefunction.idl"
 
 #include "rpcproxyhelper.h"
@@ -32,78 +34,120 @@
 #include <cstdio>
 #include <cstring>
 #include "c150debug.h"
+#include "base64.h"
 
+using namespace std;
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
+string readFromStream();
 
-void func1() {
-  char readBuffer[5];  // to read magic value DONE + null
-  //
-  // Send the Remote Call
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func1() invoked");
-  RPCPROXYSOCKET->write("func1", strlen("func1")+1); // write function name including null
-  //
-  // Read the response
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func1() invocation sent, waiting for response");
-  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer)); // only legal response is DONE
+///////////////Built in///////////////////////////
+string to_string64_string(string *val);
+void parse_string(string *value, string arg);
+string to_string64_int(int *val);
+void parse_int(int *value, string arg);
+string to_string64_float(float *val);
+void parse_float(float *value, string arg);
+//////////////////////////////////////////////////
 
-  //
-  // Check the response
-  //
-  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {
-    throw C150Exception("simplefunction.proxy: func1() received invalid response from the server");
-  }
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func1() successful return from remote call");
-
+///////////////Built in///////////////////////////
+string to_string64_string(string *val) {
+    return base64_encode(*val);
+}
+void parse_string(string *value, string arg) {
+    *value = arg;
+}
+string to_string64_int(int *val) {
+    return base64_encode(to_string(*val));
+}
+void parse_int(int *value, string arg) {
+    *value = stoi(arg);
+}
+string to_string64_float(float *val) {
+    return base64_encode(to_string(*val));
 }
 
-
-void func2() {
-  char readBuffer[5];  // to read magic value DONE + null
-  //
-  // Send the Remote Call
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func2() invoked");
-  RPCPROXYSOCKET->write("func2", strlen("func2")+1); // write function name including null
-  //
-  // Read the response
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func2() invocation sent, waiting for response");
-  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer)); // only legal response is DONE
-
-  //
-  // Check the response
-  //
-  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {
-    throw C150Exception("simplefunction.proxy: func2() received invalid response from the server");
-  }
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func2() successful return from remote call");
-
+void parse_float(float *value, string arg) {
+    *value = stof(arg);
 }
-
+//////////////////////////////////////////////////
 
 void func3() {
-  char readBuffer[5];  // to read magic value DONE + null
-  //
-  // Send the Remote Call
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func3() invoked");
-  RPCPROXYSOCKET->write("func3", strlen("func3")+1); // write function name including null
-  //
-  // Read the response
-  //
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func3() invocation sent, waiting for response");
-  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer)); // only legal response is DONE
-
-  //
-  // Check the response
-  //
-  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {
-    throw C150Exception("simplefunction.proxy: func3() received invalid response from the server");
+  ostringstream args;
+  args << " ";
+  string outgoing = "func3 " + base64_encode(args.str());
+  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);
+  c150debug->printf(C150RPCDEBUG,"proxy: func3 invoked");
+  istringstream ret;
+  string raw = readFromStream();
+  ret.str(raw);
+  string name;
+  ret >> name;
+  if (name != "func3") {
+    //panic!
   }
-  c150debug->printf(C150RPCDEBUG,"simplefunction.proxy.cpp: func3() successful return from remote call");
-
+  return;
+}
+void func2() {
+  ostringstream args;
+  args << " ";
+  string outgoing = "func2 " + base64_encode(args.str());
+  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);
+  c150debug->printf(C150RPCDEBUG,"proxy: func2 invoked");
+  istringstream ret;
+  string raw = readFromStream();
+  ret.str(raw);
+  string name;
+  ret >> name;
+  if (name != "func2") {
+    //panic!
+  }
+  return;
+}
+void func1() {
+  ostringstream args;
+  args << " ";
+  string outgoing = "func1 " + base64_encode(args.str());
+  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);
+  c150debug->printf(C150RPCDEBUG,"proxy: func1 invoked");
+  istringstream ret;
+  string raw = readFromStream();
+  ret.str(raw);
+  string name;
+  ret >> name;
+  if (name != "func1") {
+    //panic!
+  }
+  return;
 }
 
+string readFromStream() {
+    std::ostringstream name;    // name to build
+    char bufc;                  // next char to read
+    ssize_t readlen;            // amount of data read from socket
+
+    while(1) {
+        readlen = RPCPROXYSOCKET-> read(&bufc, 1);  // read a byte
+
+        //
+        // With TCP streams, we should never get a 0 length read except with
+        // timeouts (which we're not setting in pingstreamserver) or EOF
+        //
+        if (readlen == 0) {
+            c150debug->printf(C150RPCDEBUG,"simplefunction.proxy: read zero length message, checking EOF");
+            if (RPCPROXYSOCKET-> eof()) {
+                c150debug->printf(C150RPCDEBUG,"simplefunction.proxy: EOF signaled on input");
+                return name.str();
+            } else {
+                throw C150Exception("simplefunction.proxy: unexpected zero length read without eof");
+            }
+        }
+
+        // check for null or space
+        if (bufc == '\0') {
+            return name.str();
+        }
+        name << bufc;
+    }
+    throw C150Exception("getFunctionNameFromString: This should never be thrown.");
+}

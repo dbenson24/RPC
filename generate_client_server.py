@@ -59,7 +59,8 @@ def proxyString(name, sig):
     argstring = ', '.join([normalizeType(a["type"]) + ' ' + a["name"] for a in args])
 
     lines = ["%s %s(%s) {" % (sig["return_type"], name, argstring)]
-    lines.append('  istringstream args;')
+    lines.append('  ostringstream args;')
+    lines.append('  args << " ";')
     for arg in args:
         lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
     lines.append('  string outgoing = "%s " + base64_encode(args.str());' % name)
