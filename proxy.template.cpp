@@ -36,6 +36,7 @@
 #include "c150debug.h"
 #include "base64.h"
 
+using namespace std;
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
 string readFromStream();
