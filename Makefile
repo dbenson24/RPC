@@ -217,7 +217,7 @@ idl_to_json: idl_to_json.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 # make .o from .cpp
 
 %.o:%.cpp  $(INCLUDES)
-	$(CPP) -c  $(CPPFLAGS) $< 
+	$(CPP) -std=c++0x -c  $(CPPFLAGS) $< 
 
 
 

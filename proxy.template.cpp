@@ -51,19 +51,19 @@ string readFromStream() {
     ssize_t readlen;            // amount of data read from socket
 
     while(1) {
-        readlen = RPCSTUBSOCKET-> read(&bufc, 1);  // read a byte
+        readlen = RPCPROXYSOCKET-> read(&bufc, 1);  // read a byte
 
         //
         // With TCP streams, we should never get a 0 length read except with
         // timeouts (which we're not setting in pingstreamserver) or EOF
         //
         if (readlen == 0) {
-            c150debug->printf(C150RPCDEBUG,"simplefunction.stub: read zero length message, checking EOF");
-            if (RPCSTUBSOCKET-> eof()) {
-                c150debug->printf(C150RPCDEBUG,"simplefunction.stub: EOF signaled on input");
+            c150debug->printf(C150RPCDEBUG,"simplefunction.proxy: read zero length message, checking EOF");
+            if (RPCPROXYSOCKET-> eof()) {
+                c150debug->printf(C150RPCDEBUG,"simplefunction.proxy: EOF signaled on input");
                 return name.str();
             } else {
-                throw C150Exception("simplefunction.stub: unexpected zero length read without eof");
+                throw C150Exception("simplefunction.proxy: unexpected zero length read without eof");
             }
         }
 
