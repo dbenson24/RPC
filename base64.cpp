@@ -18,7 +18,7 @@ static const char reverse_table[128] = {
 };
 
 
-::std::string base64_encode(const ::std::string &bindata) {
+::std::string base64_encode(const ::std::string &bindata)
 {
    using ::std::string;
    using ::std::numeric_limits;

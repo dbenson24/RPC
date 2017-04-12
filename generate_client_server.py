@@ -65,7 +65,7 @@ def proxyString(name, sig):
     lines.append('  string outgoing = "%s " + base64_encode(args.str());' % name)
     lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
-    lines.append('  ostringstream ret;')
+    lines.append('  istringstream ret;')
     lines.append('  string raw = readFromStream();')
     lines.append('  ret.str(raw);')
     lines.append('  string name;')
@@ -228,7 +228,7 @@ void parse_float(float *value, string arg) {
 
     for  name, sig in decls["functions"].iteritems():
         proxyfuncs.append(proxyString(name, sig))
-        stubconditionals.append("if (strcmp(functionNameBuffer, '%s'))\n      __%s();\n" % (name, name))
+        stubconditionals.append("if (strcmp(functionNameBuffer, \"%s\"))\n __%s(args);\n" % (name, name))
         stubfuncs.append(stubString(name, sig))
 
 

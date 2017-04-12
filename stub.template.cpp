@@ -47,7 +47,7 @@ $stubs
 //   Pseudo-stub for missing functions.
 //
 
-void __badFunction(char *functionName) {
+void __badFunction(const char *functionName) {
   char doneBuffer[5] = "BAD";  // to write magic value DONE + null
 
 
@@ -88,7 +88,7 @@ void dispatchFunction() {
   nameAndArgs >> name;
   nameAndArgs >> args;
 
-  char *functionNameBuffer = name.c_str();
+  const char *functionNameBuffer = name.c_str();
 
   if (!RPCSTUBSOCKET-> eof()) {
     $conditionals    else
