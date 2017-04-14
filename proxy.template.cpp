@@ -19,6 +19,7 @@
 using namespace std;
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
+// include the idl file
 #include "$idlname"
 
 string readFromStream();
