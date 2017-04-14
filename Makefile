@@ -22,6 +22,9 @@ CPP = g++
 # change following line if your rpgenerate is not in current directory
 RPCGEN = ./rpcgenerate
 
+# IDL_FILES=*.idl
+# IDL_COMMANDS=$(IDLFILES:%.idl=%command)
+
 # Where the COMP 150 shared utilities live, including c150ids.a and userports.csv
 # Note that environment variable COMP117 must be set for this to work!
 
@@ -39,10 +42,22 @@ CPPFLAGS = -g -Wall -Werror -I$(C150IDSRPC) -I$(C150LIB)
 LDFLAGS = 
 INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h rpcproxyhelper.h rpcstubhelper.h simplefunction.idl arithmetic.idl floatarithmetic.idl base64.h
 
-all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json
-	
+all: idl_to_json structsclient structsserver lotsofstuffclient lotsofstuffserver structwitharrayclient structwitharrayserver
+
+########################################################################
+#
+#          General rules for building a client and server from an idl file
+#
+#     Given any xxx.idl, these rules will build xxxclient and xxxserver
+#
+########################################################################
+
+# idlfiles: $(IDL_COMMANDS)
+
+# $(IDL_COMMANDS): %command: %client %server
+
 # %client %server
-# simplefunctionclient simplefunctionserver 
+# simplefunctionclient simplefunctionserver pingstreamclient pingstreamserver idldeclarationtst   
 
 ########################################################################
 #
@@ -52,12 +67,12 @@ all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json
 #
 ########################################################################
 
-pingstreamclient: pingstreamclient.o  $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
-	$(CPP) -o pingstreamclient pingstreamclient.o $(C150AR) $(C150IDSRPCAR) 
+# pingstreamclient: pingstreamclient.o  $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
+# 	$(CPP) -o pingstreamclient pingstreamclient.o $(C150AR) $(C150IDSRPCAR) 
 
 
-pingstreamserver: pingstreamserver.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-	$(CPP) -o pingstreamserver pingstreamserver.o $(C150AR) $(C150IDSRPCAR) 
+# pingstreamserver: pingstreamserver.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+# 	$(CPP) -o pingstreamserver pingstreamserver.o $(C150AR) $(C150IDSRPCAR) 
 
 
 ########################################################################
@@ -85,15 +100,6 @@ pingstreamserver: pingstreamserver.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 # simplefunctionserver: simplefunction.stub.o rpcserver.o rpcstubhelper.o simplefunction.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 # 	$(CPP) -o simplefunctionserver rpcserver.o simplefunction.stub.o simplefunction.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
-# simplefunctionclient: simplefunctionclient.o rpcproxyhelper.o simplefunction.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-# 	$(CPP) -o simplefunctionclient simplefunctionclient.o rpcproxyhelper.o simplefunction.proxy.o  $(C150AR) $(C150IDSRPCAR) 
-
-# The following is NOT a mistake. The main program for any of the rpc servers
-# is rpcserver.o.  This way, we can make a different one for each set 
-# of functions, by linking the right specific stugs (in this case
-# simplefunction.stub.o)
-# simplefunctionserver: simplefunction.stub.o rpcserver.o rpcstubhelper.o simplefunction.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-# 	$(CPP) -o simplefunctionserver rpcserver.o simplefunction.stub.o simplefunction.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 ########################################################################
 #
 #          Compile the rpcgenerate program
@@ -104,8 +110,8 @@ pingstreamserver: pingstreamserver.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 ########################################################################
 
 # Compile the rpcgenerate program
-rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
-	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
+# rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
+# 	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
 
 ########################################################################
 #
@@ -154,8 +160,8 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 #
 ########################################################################
 
-# %.proxy.cpp %.stub.cpp:%.idl $(RPCGEN)
-#	$(RPCGEN) $<
+%.proxy.cpp %.stub.cpp:%.idl
+	$(RPCGEN) $<
 
 ########################################################################
 #
@@ -173,8 +179,8 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 #
 ########################################################################
 
-idldeclarationtst: idldeclarationtst.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-	$(CPP) -o idldeclarationtst idldeclarationtst.o $(C150AR) $(C150IDSRPCAR) 
+# idldeclarationtst: idldeclarationtst.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+# 	$(CPP) -o idldeclarationtst idldeclarationtst.o $(C150AR) $(C150IDSRPCAR) 
 
 ########################################################################
 #
@@ -224,4 +230,4 @@ idl_to_json: idl_to_json.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 # clean up everything we build dynamically (probably missing .cpps from .idl)
 #idl_to_json 
 clean:
-	 rm -f pingstreamclient pingstreamserver idldeclarationtst simplefunctionclient simplefunctionserver *.o *.json *.pyc
+	 rm -f pingstreamclient pingstreamserver idldeclarationtst simplefunctionclient simplefunctionserver *.o *.json *.pyc *.proxy.cpp *.stub.cpp *client *server *debug.txt GRADELOG* idl_to_json
