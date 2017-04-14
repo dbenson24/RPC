@@ -1,7 +1,11 @@
 #!/bin/env python
-#
-#          print signatures of all the functions named in supplied IDL file
-#
+#   
+#   Derek Benson and Stephen Michel
+#   rpcgenerate takes the name of an idl file in the directory
+#   it parses the idl file and then generates a stub.cpp and a proxy.cpp
+#   file. The two generate files can then be compiled and run to allow
+#   a client to remotely execute the function defined in the idl file
+#   on a server.
 
 import subprocess
 import json
@@ -62,7 +66,10 @@ def proxyString(name, sig):
     lines.append('  ostringstream args;')
     lines.append('  args << " ";')
     for arg in args:
-        lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
+        if isArray(arg["type"]):
+            lines.append('  args << %s(%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
+        else:
+            lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
     lines.append('  string outgoing = "%s " + base64_encode(args.str());' % name)
     lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
@@ -106,7 +113,10 @@ def stubString(name, sig):
         names.append(a["name"])
         lines.append('  %s;' % declareVar(a["name"], a["type"]))
         lines.append('  args >> arg64;')
-        lines.append('  %s(&%s, base64_decode(arg64));' % (getParseFunc(a["type"]), a["name"]))
+        if isArray(a["type"]):
+            lines.append('  %s(%s, base64_decode(arg64));' % (getParseFunc(a["type"]), a["name"]))
+        else:
+            lines.append('  %s(&%s, base64_decode(arg64));' % (getParseFunc(a["type"]), a["name"]))
 
 
     lines.append('  string response = "%s";' % name)
@@ -202,31 +212,64 @@ void parse_float(float *value, string arg) {
     for type, info in decls["types"].iteritems():
         if info["type_of_type"] == "builtin":
             continue
-        parseDecl = "void %s(%s *val, string argstr)" % (getParseFunc(type), type)
-        encodeDecl = "string %s(%s *val)" % (getEncodeFunc(type), type);
+        if isArray(type):
+            index = type.find('[')
+            typeName = type[:index]
+            brackets = type[index:]
+            encodeDecl = "string %s(%s val%s)" % (getEncodeFunc(type), normalizeType(typeName), brackets)
+            parseDecl = "void %s(%s val%s, string argstr)" % (getParseFunc(type), normalizeType(typeName), brackets)
+            val = "val"
+        else:
+            encodeDecl = "string %s(%s *val)" % (getEncodeFunc(type), type);
+            parseDecl = "void %s(%s *val, string argstr)" % (getParseFunc(type), type)
+            val = "(*val)"
         utildecls.append(parseDecl + ";");
         utildecls.append(encodeDecl + ";");
+        # handles generating the encode and parse functions for a struct
+        parseLines = [parseDecl + " {"]
+        parseLines.append("  istringstream args;")
+        parseLines.append("  string arg64;")
+        parseLines.append("  args.str(argstr);")
+        encodeLines = [encodeDecl + " {"]
+        encodeLines.append("  ostringstream s;")
+
         if info["type_of_type"] == "struct":
-            parseLines = [parseDecl + " {"]
-            parseLines.append("  istringstream args;")
-            parseLines.append("  string arg64;")
-            parseLines.append("  args.str(argstr);")
             for member in info["members"]:
+                # read base64 string in, decode it, and parse it into the struct
                 parseLines.append("  args >> arg64;")
-                parseLines.append("  %s(&((*val).%s), base64_decode(arg64));" % (getParseFunc(member["type"]), member["name"]))
-            parseLines.append("}")
-            utilfuncs.append("\n".join(parseLines))
-
-            encodeLines = [encodeDecl + " {"]
-            encodeLines.append("  ostringstream s;")
-            for member in info["members"]:
-                encodeLines.append("  s << %s(&((*val).%s)) << ' ';" % (getEncodeFunc(member["type"]), member["name"]))
-            encodeLines.append("  return base64_encode(s.str());")
-            encodeLines.append("}")
-            utilfuncs.append("\n".join(encodeLines))
+                # add member in, encode it, and write it to the output stream
+                if isArray(member["type"]):
+                    parseLines.append("  %s((*val).%s, base64_decode(arg64));" % (getParseFunc(member["type"]), member["name"]))
+                    encodeLines.append("  s << %s(%s.%s) << ' ';" % (getEncodeFunc(member["type"]), val,  member["name"]))
+                else:
+                    parseLines.append("  %s(&((%s.%s), base64_decode(arg64));" % (getParseFunc(member["type"]), val, member["name"]))
+                    encodeLines.append("  s << %s(&(%s.%s)) << ' ';" % (getEncodeFunc(member["type"]), val, member["name"]))
+        # handles generating the encode and parse functions for an array
         else:
-            continue
+            parseLines.append("  for(int i=0; i < %s; i++) {" % info["element_count"])
+            parseLines.append("    args >> arg64;")
+            if isArray(info["member_type"]):
+                parseLines.append("    %s(%s[i], base64_decode(arg64));" % (getParseFunc(info["member_type"]), val))
+            else:
+                parseLines.append("    %s(&(%s[i]), base64_decode(arg64));" % (getParseFunc(info["member_type"]), val))
 
+            parseLines.append("  }")
+
+            encodeLines.append("  for(int i=0; i < %s; i++) {" % info["element_count"])
+            if isArray(info["member_type"]):
+                encodeLines.append("    s << %s(%s[i]) << ' ';" % (getEncodeFunc(info["member_type"]), val))
+            else:
+                encodeLines.append("    s << %s(&(%s[i])) << ' ';" % (getEncodeFunc(info["member_type"]), val))
+            encodeLines.append("  }")
+
+
+        parseLines.append("}")
+        utilfuncs.append("\n".join(parseLines))
+
+        encodeLines.append("  return base64_encode(s.str());")
+        encodeLines.append("}")
+        utilfuncs.append("\n".join(encodeLines))
+            
     for  name, sig in decls["functions"].iteritems():
         proxyfuncs.append(proxyString(name, sig))
         stubconditionals.append("if (!strcmp(functionNameBuffer, \"%s\"))\n __%s(args);\n" % (name, name))
