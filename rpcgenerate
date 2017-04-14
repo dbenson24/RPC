@@ -16,8 +16,6 @@ import traceback
 from string import Template
 
 
-print sys.argv
-
 # Takes a type and removes underscores at the front (dealing with arrays)
 def normalizeType(type):
     if type[0] == '_' and type[1] == '_':
@@ -60,35 +58,56 @@ def proxyString(name, sig):
     args = sig["arguments"]
 
     # Make a string of form:  "type1 arg1, type2 arg2" for use in function sig
-    argstring = ', '.join([normalizeType(a["type"]) + ' ' + a["name"] for a in args])
+    argarray = [];
 
+    for a in args:
+        if isArray(a["type"]):
+            index = a["type"].find('[')
+            typeName = a["type"][:index]
+            brackets = a["type"][index:]
+            argarray.append(normalizeType(typeName) + ' ' + a["name"] + brackets)
+        else:
+            argarray.append(a["type"] + ' ' + a["name"])
+
+    argstring = ", ".join(argarray)
+
+    # declares function and an output stream
     lines = ["%s %s(%s) {" % (sig["return_type"], name, argstring)]
+    lines.append('  *GRADING << "proxy: Called %s" << endl;' % name)
     lines.append('  ostringstream args;')
     lines.append('  args << " ";')
+    # base64encodes each argument seperately and adds them to a space seperated stream
     for arg in args:
+        lines.append('  *GRADING << "proxy: encoding argument %s" << endl;' % arg["name"])
         if isArray(arg["type"]):
             lines.append('  args << %s(%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
         else:
             lines.append('  args << %s(&%s) << " ";' % (getEncodeFunc(arg["type"]), arg["name"]))
+    # writes the stream to the socket
     lines.append('  string outgoing = "%s " + base64_encode(args.str());' % name)
     lines.append('  RPCPROXYSOCKET->write(outgoing.c_str(), strlen(outgoing.c_str()) + 1);')
+    lines.append('  *GRADING << "proxy: sending to client - " << outgoing << endl;')
     lines.append('  c150debug->printf(C150RPCDEBUG,"proxy: %s invoked");' % name)
+    # reads the response from the socket
     lines.append('  istringstream ret;')
     lines.append('  string raw = readFromStream();')
     lines.append('  ret.str(raw);')
     lines.append('  string name;')
     lines.append('  ret >> name;')
     lines.append('  if (name != "%s") {' %name)
-    lines.append('    //panic!')
+    lines.append('    *GRADING << "proxy: Invalid response from server in %s!" << endl;' % name)
     lines.append('  }')
+    # parses the return value if necessary
     if sig["return_type"] != "void":
         lines.append('  string msg;')
         lines.append('  ret >> msg;')
+        lines.append('  *GRADING << "proxy: function %s returned with - " << msg << endl;' % name)
         lines.append('  %s retval;' % normalizeType(sig["return_type"]))
         lines.append('  %s(&retval, base64_decode(msg));' % getParseFunc(sig["return_type"]))
         lines.append('  return retval;')
 
     else:
+        lines.append('  *GRADING << "Void function %s returned" << endl;' % name)
         lines.append('  return;')
     lines.append('}')
 
@@ -99,20 +118,24 @@ def proxyString(name, sig):
 def stubString(name, sig):
     # Python Array of all args (each is a hash with keys "name" and "type")
     args = sig["arguments"]
-
-    # Make a string of form:  "type1 arg1, type2 arg2" for use in function sig
-    argstring = ', '.join([normalizeType(a["type"]) + ' ' + a["name"] for a in args])
-
+    
+    # declares the stub function and the inputstream to read arguments
     lines = ['void __%s(string args64) {' % name]
     lines.append('  c150debug->printf(C150RPCDEBUG, "called %s with \'%%s\'", args64.c_str());' % name)
+    lines.append('  *GRADING << "stub: called __%s with base64string of " << args64 << endl;' % name)
     lines.append('  istringstream args;')
     lines.append('  string arg64;')
     lines.append('  args.str(base64_decode(args64));')
     names = []
+    # generates code to read each base64 encoded string from the argument string,
+    # it then parses the decoded argument into the correct memory location
     for a in args:
         names.append(a["name"])
+        lines.append('  *GRADING << "stub: parsing arg - %s" << endl;' % a["name"])
         lines.append('  %s;' % declareVar(a["name"], a["type"]))
         lines.append('  args >> arg64;')
+        # arrays need to be passed by value into their parse functions because
+        # the compiler didn't like it other ways
         if isArray(a["type"]):
             lines.append('  %s(%s, base64_decode(arg64));' % (getParseFunc(a["type"]), a["name"]))
         else:
@@ -121,13 +144,16 @@ def stubString(name, sig):
 
     lines.append('  string response = "%s";' % name)
     lines.append('  c150debug->printf(C150RPCDEBUG,"stub: invoking %s()");' % name)
+    # create the response string if necessary and call the function
     if sig["return_type"] == "void":
         lines.append('  %s(%s);' % (name, ", ".join(names)))
     else:
         lines.append('  %s retval = %s(%s);' % (sig["return_type"], name, ", ".join(names)))
         lines.append('  response = response + " " + %s(&retval);' % getEncodeFunc(sig["return_type"]))
 
+    # encode and return the results of the function to the clear
     lines.append('  c150debug->printf(C150RPCDEBUG,"stub: %s() has returned");' % name)
+    lines.append('  *GRADING << "stub: function %s returned. Response to client - " << response << endl;' % name)
     lines.append('  RPCSTUBSOCKET->write(response.c_str(), strlen(response.c_str()) + 1);')
     lines.append('}')
 
@@ -210,22 +236,30 @@ void parse_float(float *value, string arg) {
 
     # loop generates all of encode and parse functions needed for each type
     for type, info in decls["types"].iteritems():
+        # parse/encode functions for builtin types are in the two templates
         if info["type_of_type"] == "builtin":
             continue
+        # array parse/encode functions take the array that is being operated on
         if isArray(type):
             index = type.find('[')
             typeName = type[:index]
             brackets = type[index:]
             encodeDecl = "string %s(%s val%s)" % (getEncodeFunc(type), normalizeType(typeName), brackets)
             parseDecl = "void %s(%s val%s, string argstr)" % (getParseFunc(type), normalizeType(typeName), brackets)
+            # val represents how to get access members of the item passed in
+            # if this parse/encode function is for an array then val is already a
+            # pointer to the array
             val = "val"
+        # struct parse/encode functions take a reference to the struct
         else:
             encodeDecl = "string %s(%s *val)" % (getEncodeFunc(type), type);
             parseDecl = "void %s(%s *val, string argstr)" % (getParseFunc(type), type)
+            # if these functions are for a struct, val neededs to be dereferenced
+            # before being accessed
             val = "(*val)"
         utildecls.append(parseDecl + ";");
         utildecls.append(encodeDecl + ";");
-        # handles generating the encode and parse functions for a struct
+        # adds the shared declarations for array/struct parsing
         parseLines = [parseDecl + " {"]
         parseLines.append("  istringstream args;")
         parseLines.append("  string arg64;")
@@ -233,6 +267,7 @@ void parse_float(float *value, string arg) {
         encodeLines = [encodeDecl + " {"]
         encodeLines.append("  ostringstream s;")
 
+        # adds struct specific code
         if info["type_of_type"] == "struct":
             for member in info["members"]:
                 # read base64 string in, decode it, and parse it into the struct
@@ -242,7 +277,7 @@ void parse_float(float *value, string arg) {
                     parseLines.append("  %s((*val).%s, base64_decode(arg64));" % (getParseFunc(member["type"]), member["name"]))
                     encodeLines.append("  s << %s(%s.%s) << ' ';" % (getEncodeFunc(member["type"]), val,  member["name"]))
                 else:
-                    parseLines.append("  %s(&((%s.%s), base64_decode(arg64));" % (getParseFunc(member["type"]), val, member["name"]))
+                    parseLines.append("  %s(&(%s.%s), base64_decode(arg64));" % (getParseFunc(member["type"]), val, member["name"]))
                     encodeLines.append("  s << %s(&(%s.%s)) << ' ';" % (getEncodeFunc(member["type"]), val, member["name"]))
         # handles generating the encode and parse functions for an array
         else:

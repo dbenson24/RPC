@@ -115,12 +115,12 @@ string readFromStream() {
         // timeouts (which we're not setting in pingstreamserver) or EOF
         //
         if (readlen == 0) {
-            c150debug->printf(C150RPCDEBUG,"simplefunction.stub: read zero length message, checking EOF");
+            c150debug->printf(C150RPCDEBUG,"stub: read zero length message, checking EOF");
             if (RPCSTUBSOCKET-> eof()) {
-                c150debug->printf(C150RPCDEBUG,"simplefunction.stub: EOF signaled on input");
+                c150debug->printf(C150RPCDEBUG,"stub: EOF signaled on input");
                 return name.str();
             } else {
-                throw C150Exception("simplefunction.stub: unexpected zero length read without eof");
+                throw C150Exception("stub: unexpected zero length read without eof");
             }
         }
 
