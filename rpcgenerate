@@ -342,5 +342,4 @@ void parse_float(float *value, string arg) {
 
 
 except Exception as e:
-    traceback.print_exc()
     print >> sys.stderr, "Usage: %s <idlfilename>" % sys.argv[0]
