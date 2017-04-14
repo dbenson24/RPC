@@ -1,3 +1,4 @@
+// From https://stackoverflow.com/a/5291537
 #include <string>
 #include <cassert>
 #include <limits>
